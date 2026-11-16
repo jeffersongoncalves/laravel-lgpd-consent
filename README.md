@@ -82,6 +82,8 @@ fetch('/lgpd/consent', {
 
 A logged-in user's choice is recorded on the user. A guest's choice is recorded under a random id, which is kept in an encrypted cookie (`lgpd_consent_id`).
 
+[laravel-cookie-consent](https://github.com/jeffersongoncalves/laravel-cookie-consent) (4.4+) detects this endpoint on its own. From then on, its banner records every allow and deny under the purpose `cookies`. If you configure `purposes`, add `cookies` to that list.
+
 ### Append-only
 
 Calling `update()` or `delete()` on a `ConsentRecord` throws an exception. The one exception is the personal data columns (`ip_address`, `user_agent`): the records are declared with [laravel-lgpd](https://github.com/jeffersongoncalves/laravel-lgpd)'s `#[PersonalData]`, so you can still clear those columns with `$record->anonymizePersonalData()`.
