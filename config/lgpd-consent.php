@@ -27,6 +27,8 @@ return [
         'path' => 'lgpd/consent',
         'middleware' => ['web', 'throttle:60,1'],
         'cookie' => 'lgpd_consent_id',
+        // On login, copy the visitor's latest decisions (by cookie id) onto the user.
+        'claim_on_login' => true,
     ],
 
 ];

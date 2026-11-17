@@ -81,6 +81,40 @@ class ConsentManager
             ->where('subject_id', (string) $subject->getKey());
     }
 
+    /**
+     * Carry a visitor's decisions over to the account they log into. The ledger stays append-only:
+     * for each purpose, the visitor's latest decision is copied onto the subject as a new record
+     * (source "claimed", original proof kept) unless the subject already decided after it.
+     *
+     * @return Collection<int, ConsentRecord> the records created
+     */
+    public function claim(string $anonymousId, Model $subject): Collection
+    {
+        $claimed = new Collection;
+
+        $latest = $this->query($anonymousId)->orderByDesc('id')->get()->unique('purpose');
+
+        foreach ($latest as $record) {
+            $own = $this->latest($subject, $record->purpose);
+
+            // Ids grow with time: a later own decision (including an earlier claim) wins.
+            if ($own !== null && $own->getKey() > $record->getKey()) {
+                continue;
+            }
+
+            $claimed->push($this->record($subject, $record->purpose, $record->action, $record->version, 'claimed', [
+                'anonymous_id' => $anonymousId,
+                'claimed_record_id' => $record->getKey(),
+            ], [
+                'expires_at' => $record->expires_at,
+                'ip_address' => $record->getAttribute('ip_address'),
+                'user_agent' => $record->getAttribute('user_agent'),
+            ]));
+        }
+
+        return $claimed;
+    }
+
     public function currentVersion(string $purpose): ?string
     {
         $version = $this->purpose($purpose)['version'] ?? null;

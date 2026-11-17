@@ -2,6 +2,9 @@
 
 namespace JeffersonGoncalves\LgpdConsent;
 
+use Illuminate\Auth\Events\Login;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use JeffersonGoncalves\LgpdConsent\Http\ConsentController;
 use Spatie\LaravelPackageTools\Package;
@@ -26,6 +29,16 @@ class LgpdConsentServiceProvider extends PackageServiceProvider
     {
         if (! config('lgpd-consent.route.enabled', false)) {
             return;
+        }
+
+        if (config('lgpd-consent.route.claim_on_login', true)) {
+            Event::listen(Login::class, function (Login $event): void {
+                $id = request()->cookie((string) config('lgpd-consent.route.cookie', 'lgpd_consent_id'));
+
+                if (is_string($id) && $id !== '' && $event->user instanceof Model) {
+                    $this->app->make(ConsentManager::class)->claim($id, $event->user);
+                }
+            });
         }
 
         Route::middleware((array) config('lgpd-consent.route.middleware', ['web']))
