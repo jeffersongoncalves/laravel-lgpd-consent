@@ -97,8 +97,12 @@ class ConsentManager
         foreach ($latest as $record) {
             $own = $this->latest($subject, $record->purpose);
 
-            // Ids grow with time: a later own decision (including an earlier claim) wins.
-            if ($own !== null && $own->getKey() > $record->getKey()) {
+            // Ids grow with time. A claimed record counts as of the decision it copied, so a later
+            // visitor decision still wins over an earlier claim; claiming the same one twice is a no-op.
+            $ownOrder = $own === null ? null
+                : ($own->getAttribute('source') === 'claimed' ? (int) ($own->metadata['claimed_record_id'] ?? $own->getKey()) : (int) $own->getKey());
+
+            if ($ownOrder !== null && $ownOrder >= (int) $record->getKey()) {
                 continue;
             }
 

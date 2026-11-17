@@ -132,6 +132,21 @@ it('keeps the user\'s own later decision over the visitor\'s', function () {
         ->and($user->hasConsent('marketing'))->toBeFalse();
 });
 
+it('orders claims by the original decision, across visitor ids', function () {
+    LgpdConsent::grant('device-a', 'analytics');
+    LgpdConsent::revoke('device-b', 'analytics');
+    $user = user();
+
+    LgpdConsent::claim('device-a', $user);
+    expect($user->hasConsent('analytics'))->toBeTrue();
+
+    // device-b decided after device-a: its revoke wins even though it is claimed later.
+    expect(LgpdConsent::claim('device-b', $user))->toHaveCount(1)
+        ->and($user->hasConsent('analytics'))->toBeFalse()
+        ->and(LgpdConsent::claim('device-a', $user))->toHaveCount(0)
+        ->and($user->hasConsent('analytics'))->toBeFalse();
+});
+
 it('claims the cookie id on login', function () {
     LgpdConsent::grant('visitor-1', 'analytics');
     $user = user();
