@@ -11,6 +11,7 @@ use JeffersonGoncalves\LgpdConsent\ConsentManager;
  * @method static bool has(\Illuminate\Database\Eloquent\Model|string $subject, string $purpose, ?string $version = null)
  * @method static \JeffersonGoncalves\LgpdConsent\Models\ConsentRecord|null latest(\Illuminate\Database\Eloquent\Model|string $subject, string $purpose)
  * @method static \Illuminate\Database\Eloquent\Collection<int, \JeffersonGoncalves\LgpdConsent\Models\ConsentRecord> history(\Illuminate\Database\Eloquent\Model|string $subject, ?string $purpose = null)
+ * @method static \Illuminate\Database\Eloquent\Collection<int, \JeffersonGoncalves\LgpdConsent\Models\ConsentRecord> claim(string $anonymousId, \Illuminate\Database\Eloquent\Model $subject)
  *
  * @see ConsentManager
  */

@@ -82,6 +82,12 @@ fetch('/lgpd/consent', {
 
 A logged-in user's choice is recorded on the user. A guest's choice is recorded under a random id, which is kept in an encrypted cookie (`lgpd_consent_id`).
 
+When a guest logs in, their decisions move to the account. For each purpose, the guest's latest decision is copied onto the user as a new record, with source `claimed` and the guest id plus the original record id in its metadata. The original IP address, user agent and expiry are kept as the proof. A decision the user made after the guest's one wins. The guest rows stay untouched, because the ledger is append-only. This runs on Laravel's `Login` event when the endpoint is enabled. Turn it off with `route.claim_on_login => false`, or call it yourself:
+
+```php
+LgpdConsent::claim($anonymousId, $user);   // returns the records it created
+```
+
 [laravel-cookie-consent](https://github.com/jeffersongoncalves/laravel-cookie-consent) (4.4+) detects this endpoint on its own. From then on, its banner records every allow and deny under the purpose `cookies`. If you configure `purposes`, add `cookies` to that list.
 
 ### Append-only

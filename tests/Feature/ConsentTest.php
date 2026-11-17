@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use JeffersonGoncalves\LgpdConsent\Enums\ConsentAction;
 use JeffersonGoncalves\LgpdConsent\Events\ConsentRecorded;
 use JeffersonGoncalves\LgpdConsent\Facades\LgpdConsent;
@@ -99,6 +101,68 @@ it('stores guest choices from the endpoint with a cookie id', function () {
 
     expect(LgpdConsent::has($id, 'analytics'))->toBeFalse()
         ->and(LgpdConsent::history($id))->toHaveCount(2);
+});
+
+it('claims a visitor\'s latest decisions for the user, once', function () {
+    LgpdConsent::grant('visitor-1', 'analytics');
+    LgpdConsent::revoke('visitor-1', 'analytics');
+    LgpdConsent::grant('visitor-1', 'marketing');
+    $user = user();
+    $user->grantConsent('newsletter');
+
+    $claimed = LgpdConsent::claim('visitor-1', $user);
+
+    expect($claimed)->toHaveCount(2)
+        ->and($user->hasConsent('analytics'))->toBeFalse()
+        ->and($user->hasConsent('marketing'))->toBeTrue()
+        ->and(LgpdConsent::latest($user, 'marketing'))
+        ->source->toBe('claimed')
+        ->metadata->toMatchArray(['anonymous_id' => 'visitor-1'])
+        ->ip_address->toBe('127.0.0.1')
+        ->and(LgpdConsent::history('visitor-1'))->toHaveCount(3)
+        ->and(LgpdConsent::claim('visitor-1', $user))->toHaveCount(0);
+});
+
+it('keeps the user\'s own later decision over the visitor\'s', function () {
+    LgpdConsent::grant('visitor-1', 'marketing');
+    $user = user();
+    $user->revokeConsent('marketing');
+
+    expect(LgpdConsent::claim('visitor-1', $user))->toHaveCount(0)
+        ->and($user->hasConsent('marketing'))->toBeFalse();
+});
+
+it('orders claims by the original decision, across visitor ids', function () {
+    LgpdConsent::grant('device-a', 'analytics');
+    LgpdConsent::revoke('device-b', 'analytics');
+    $user = user();
+
+    LgpdConsent::claim('device-a', $user);
+    expect($user->hasConsent('analytics'))->toBeTrue();
+
+    // device-b decided after device-a: its revoke wins even though it is claimed later.
+    expect(LgpdConsent::claim('device-b', $user))->toHaveCount(1)
+        ->and($user->hasConsent('analytics'))->toBeFalse()
+        ->and(LgpdConsent::claim('device-a', $user))->toHaveCount(0)
+        ->and($user->hasConsent('analytics'))->toBeFalse();
+});
+
+it('claims the cookie id on login', function () {
+    LgpdConsent::grant('visitor-1', 'analytics');
+    $user = user();
+
+    Route::middleware('web')->post('/test-login', function () use ($user) {
+        Auth::login($user);
+
+        return response()->noContent();
+    });
+
+    $this->withoutMiddleware(VerifyCsrfToken::class)
+        ->withCookie('lgpd_consent_id', 'visitor-1')
+        ->post('/test-login')
+        ->assertNoContent();
+
+    expect($user->hasConsent('analytics'))->toBeTrue();
 });
 
 it('stores logged-in choices on the user', function () {
