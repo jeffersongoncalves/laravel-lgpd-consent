@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.0 - 2026-11-18
+
+### Breaking
+
+- The engine moves to [laravel-privacy](https://github.com/jeffersongoncalves/laravel-privacy), the base shared by the LGPD, GDPR, CCPA, US privacy and Quebec suites. Every class of this package keeps its name and now extends its `JeffersonGoncalves\Privacy` base. If you extend one of them, check your overrides.
+
+### Unchanged
+
+- Config keys, tables, migrations, commands, events and the `#[PersonalData]` declarations: apps need no change.
+
+### Added
+
+- Suites installed side by side (e.g. LGPD and GDPR) only see their own declarations and events.
+
 ## 1.1.0 - 2026-11-16
 
 - `LgpdConsent::claim($anonymousId, $user)`: carries a visitor's latest decision per purpose over to the account as new records (source `claimed`, original IP, user agent and expiry kept as proof). The ledger stays append-only; decisions are ordered by when they were originally made, so the latest one wins across devices.
